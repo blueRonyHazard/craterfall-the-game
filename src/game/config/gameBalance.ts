@@ -32,7 +32,7 @@ export const AIMING = {
   /** Degrees per second while an angle key is held. */
   angleRate: 45,
   /** Power percent per second while a power key is held. */
-  powerRate: 35,
+  powerRate: 60,
   /** Multiplier applied while the fine-adjust modifier is held. */
   fineAdjustFactor: 0.2,
   defaultAngleP1: 45,
@@ -60,11 +60,14 @@ export const TANK = {
 } as const;
 
 export const WIND = {
-  maxStrength: 10,
+  maxStrength: 5,
   /** Wind strength is rounded to this many decimals so it displays exactly as simulated. */
   precision: 1,
-  /** If true a new wind is rolled at the start of every turn, otherwise once per match. */
-  changesEachTurn: true,
+  /**
+   * false: wind is rolled once from the match's wind seed and stays constant for the whole game.
+   * true:  a new wind is rolled at the start of every turn.
+   */
+  changesEachTurn: false,
 } as const;
 
 export const DAMAGE = {

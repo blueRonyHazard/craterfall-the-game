@@ -91,6 +91,10 @@ export const TERRAIN = {
   smoothRadius: 3,
   /** Wider blur for the 'terraces' layout. */
   terraceSmoothRadius: 9,
+  /** Built-up earth (Dirt Creator) can never rise above this y, in world units. */
+  buildCeiling: 40,
+  /** A pyramid's sides run at most this many half-widths from its centre before stopping. */
+  pyramidMaxSpread: 2,
   /** Half-width of the flat pad created under each tank. */
   padHalfWidth: 34,
   /** Distance over which pads blend back into the surrounding terrain. */
@@ -122,4 +126,11 @@ export const EFFECTS = {
   shakeIntensityPerRadius: 0.00012,
   maxShakeIntensity: 0.014,
   trailLength: 22,
+  /** How long the Dirt Creator's pyramid takes to fall into place. */
+  pyramidDropMs: 340,
+  /** Magma pool drawing: thickness above / below the surface and shimmer speed. */
+  magmaThickness: 7,
+  magmaShimmerSpeed: 3,
+  /** Milliseconds between ember sparks rising from each magma pool. */
+  magmaEmberIntervalMs: 160,
 } as const;

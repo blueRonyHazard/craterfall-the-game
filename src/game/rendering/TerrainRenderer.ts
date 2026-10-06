@@ -6,6 +6,7 @@ import { SeededRandom } from '../../utils/random';
 const GRASS_DEPTH = 7;
 const GRASS_HIGHLIGHT = 2;
 const SCORCH_DEPTH = 5;
+const FRESH_EARTH_DEPTH = 6;
 const STRATA_COUNT = 9;
 const SPECKLE_DENSITY = 0.0016;
 
@@ -75,13 +76,18 @@ export class TerrainRenderer {
     this.texture.refresh();
   }
 
-  /** Grass on untouched ground, charred rim on crater walls. Consecutive columns are batched. */
+  /** Grass on untouched ground, charred rim on crater walls, light soil on built-up earth. */
   private paintCap(from: number, to: number): void {
     const ctx = this.ctx;
     for (let x = from; x <= to; x++) {
       const top = this.terrain.surfaceAtColumn(x);
       if (top >= this.terrain.height - 1) continue;
-      if (this.terrain.isScorched(x)) {
+      if (this.terrain.isFreshEarth(x)) {
+        ctx.fillStyle = PALETTE.freshEarthEdge;
+        ctx.fillRect(x, top, 1, 1.5);
+        ctx.fillStyle = PALETTE.freshEarth;
+        ctx.fillRect(x, top + 1.5, 1, FRESH_EARTH_DEPTH);
+      } else if (this.terrain.isScorched(x)) {
         ctx.fillStyle = PALETTE.scorchedEdge;
         ctx.fillRect(x, top, 1, 1.5);
         ctx.fillStyle = PALETTE.scorched;

@@ -1,6 +1,9 @@
 import { TERRAIN } from '../config/gameBalance';
 import { clamp } from '../../utils/math';
 
+const SURFACE_SCORCHED = 1;
+const SURFACE_FRESH_EARTH = 2;
+
 export interface DirtyRange {
   minX: number;
   maxX: number;
@@ -18,8 +21,11 @@ export class Terrain {
   readonly width: number;
   readonly height: number;
   private readonly surface: Float32Array;
-  /** Columns whose top has been scorched by an explosion (purely cosmetic, read by the renderer). */
-  private readonly scorched: Uint8Array;
+  /**
+   * Cosmetic state of each column's top, read by the renderer:
+   * grass (untouched), scorched (blasted) or fresh earth (built up).
+   */
+  private readonly surfaceKind: Uint8Array;
 
   constructor(width: number, height: number, surface: Float32Array) {
     if (surface.length !== width) {
@@ -28,7 +34,7 @@ export class Terrain {
     this.width = width;
     this.height = height;
     this.surface = surface;
-    this.scorched = new Uint8Array(width);
+    this.surfaceKind = new Uint8Array(width);
   }
 
   /** Lowest the surface may be pushed (keeps a strip of bedrock). */
@@ -62,7 +68,11 @@ export class Terrain {
   }
 
   isScorched(column: number): boolean {
-    return this.scorched[column] === 1;
+    return this.surfaceKind[column] === SURFACE_SCORCHED;
+  }
+
+  isFreshEarth(column: number): boolean {
+    return this.surfaceKind[column] === SURFACE_FRESH_EARTH;
   }
 
   /**
@@ -85,9 +95,11 @@ export class Terrain {
    * Earth above an underground blast collapses into the crater, which is the
    * natural behaviour of a height map.
    *
+   * `finish` sets how the exposed surface looks: charred by a blast, or freshly dug.
+   *
    * @returns the affected column range, or null if nothing changed.
    */
-  carveCircle(cx: number, cy: number, radius: number): DirtyRange | null {
+  carveCircle(cx: number, cy: number, radius: number, finish: 'scorched' | 'freshEarth' = 'scorched'): DirtyRange | null {
     if (radius <= 0) {
       return null;
     }
@@ -108,7 +120,41 @@ export class Terrain {
       const current = this.surface[x] as number;
       if (bottom > current) {
         this.surface[x] = bottom;
-        this.scorched[x] = 1;
+        this.surfaceKind[x] = finish === 'scorched' ? SURFACE_SCORCHED : SURFACE_FRESH_EARTH;
+        changed = true;
+        if (x < changedMin) changedMin = x;
+        if (x > changedMax) changedMax = x;
+      }
+    }
+    return changed ? { minX: changedMin, maxX: changedMax } : null;
+  }
+
+  /**
+   * Adds a pyramid of earth. The apex is at (cx, apexY); each side falls by
+   * `slope` units per column and the pyramid fills every column where that line
+   * is above the existing ground, up to `maxSpread` columns either side.
+   * Columns are only ever raised, never lowered, and never above `ceiling`.
+   * Raised columns are marked as fresh earth.
+   *
+   * @returns the affected column range, or null if nothing changed.
+   */
+  raisePyramid(cx: number, apexY: number, slope: number, maxSpread: number, ceiling: number): DirtyRange | null {
+    if (slope <= 0 || maxSpread <= 0) {
+      return null;
+    }
+    const minX = Math.max(0, Math.floor(cx - maxSpread));
+    const maxX = Math.min(this.width - 1, Math.ceil(cx + maxSpread));
+    const apex = Math.max(apexY, ceiling);
+    let changed = false;
+    let changedMin = maxX;
+    let changedMax = minX;
+
+    for (let x = minX; x <= maxX; x++) {
+      const top = apex + Math.abs(x - cx) * slope;
+      const current = this.surface[x] as number;
+      if (top < current) {
+        this.surface[x] = top;
+        this.surfaceKind[x] = SURFACE_FRESH_EARTH;
         changed = true;
         if (x < changedMin) changedMin = x;
         if (x > changedMax) changedMax = x;

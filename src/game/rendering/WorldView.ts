@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { TANK } from '../config/gameBalance';
+import { EFFECTS, TANK } from '../config/gameBalance';
 import { PLAYER_THEMES } from '../config/theme';
 import { barrelTip, tankCenter } from '../entities/Tank';
 import type { MatchEngine } from '../systems/MatchEngine';
@@ -7,6 +7,7 @@ import { GamePhase, type SimEvent } from '../../types/game';
 import { degToRad } from '../../utils/math';
 import { BackgroundRenderer } from './BackgroundRenderer';
 import { EffectsRenderer } from './EffectsRenderer';
+import { HazardRenderer } from './HazardRenderer';
 import { ProjectileRenderer } from './ProjectileRenderer';
 import { TankView } from './TankView';
 import { TerrainRenderer } from './TerrainRenderer';
@@ -27,17 +28,22 @@ export class WorldView {
   private readonly projectiles: ProjectileRenderer;
   private readonly effects: EffectsRenderer;
   private readonly aimGuide: Phaser.GameObjects.Graphics;
+  private readonly hazards: HazardRenderer;
+  /** Scene time until which a falling pyramid is still in the air. */
+  private buildLandsAt = 0;
+  private lastEmber = 0;
 
   constructor(
-    scene: Phaser.Scene,
     layer: Phaser.GameObjects.Layer,
     camera: Phaser.Cameras.Scene2D.Camera,
+    private readonly scene: Phaser.Scene,
     private readonly engine: MatchEngine,
     private readonly options: { screenShake: () => boolean; showAimGuide: () => boolean },
   ) {
     const { terrain, state } = engine;
     this.background = new BackgroundRenderer(scene, layer, terrain.width, terrain.height, state.terrainSeed);
     this.terrainRenderer = new TerrainRenderer(scene, layer, terrain, state.terrainSeed);
+    this.hazards = new HazardRenderer(scene, layer, terrain);
     this.aimGuide = scene.add.graphics();
     layer.add(this.aimGuide);
     this.tanks = [
@@ -54,7 +60,26 @@ export class WorldView {
     this.background.update(deltaSeconds);
     this.tanks.forEach((view, i) => view.setAngle(state.tanks[i as 0 | 1].angle));
     this.projectiles.sync(this.engine.activeProjectiles, (p) => this.effects.dust(p.x, p.y));
+    this.hazards.draw(state.hazards, this.scene.time.now / 1000);
+    this.emitEmbers();
     this.drawAimGuide();
+  }
+
+  /** Milliseconds until a pyramid that is currently falling lands (0 if none). */
+  private get buildDelay(): number {
+    return Math.max(0, this.buildLandsAt - this.scene.time.now);
+  }
+
+  private emitEmbers(): void {
+    const { hazards } = this.engine.state;
+    const now = this.scene.time.now;
+    if (hazards.length === 0 || now - this.lastEmber < EFFECTS.magmaEmberIntervalMs) return;
+    this.lastEmber = now;
+    for (const hazard of hazards) {
+      // Cosmetic randomness only; the simulation never sees it.
+      const x = hazard.x + (Math.random() * 2 - 1) * hazard.radius * 0.8;
+      this.effects.ember(x, this.engine.terrain.heightAt(x) - 2);
+    }
   }
 
   handleEvent(event: SimEvent): void {
@@ -73,10 +98,27 @@ export class WorldView {
         return;
       }
       case 'explosion':
-        this.effects.explosion(event.x, event.y, event.radius);
+        if (event.visual === 'dust') this.effects.dustBurst(event.x, event.y, event.radius);
+        else if (event.visual === 'magma') this.effects.magmaSplash(event.x, event.y, event.radius);
+        else this.effects.explosion(event.x, event.y, event.radius);
         return;
-      case 'terrainChanged':
-        this.terrainRenderer.redraw(event.minX, event.maxX);
+      case 'terrainBuilt':
+        this.effects.pyramidDrop(event.x, event.apexY, event.height, event.halfWidth);
+        this.buildLandsAt = this.scene.time.now + EFFECTS.pyramidDropMs;
+        return;
+      case 'terrainChanged': {
+        // Built-up earth appears when the falling pyramid lands, not before.
+        const { minX, maxX } = event;
+        const delay = event.cause === 'build' ? this.buildDelay : 0;
+        if (delay > 0) this.scene.time.delayedCall(delay, () => this.terrainRenderer.redraw(minX, maxX));
+        else this.terrainRenderer.redraw(minX, maxX);
+        return;
+      }
+      case 'hazardTriggered':
+        this.effects.burn(event.x, event.y - TANK.centerHeight);
+        return;
+      case 'hazardCreated':
+      case 'hazardExpired':
         return;
       case 'projectileBounced':
         this.effects.bounce(event.x, event.y);
@@ -93,7 +135,7 @@ export class WorldView {
         return;
       }
       case 'tankMoved':
-        this.tanks[event.playerId].moveTo(event.x, event.y);
+        this.tanks[event.playerId].moveTo(event.x, event.y, this.buildDelay);
         return;
       case 'tankDestroyed': {
         const center = tankCenter(state.tanks[event.playerId]);

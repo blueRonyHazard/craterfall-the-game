@@ -79,8 +79,8 @@ export class TankView {
   }
 
   /** Animates the tank dropping to a new resting position. */
-  moveTo(x: number, y: number): void {
-    this.scene.tweens.add({ targets: this.container, x, y, duration: 260, ease: 'Quad.easeIn' });
+  moveTo(x: number, y: number, delayMs = 0): void {
+    this.scene.tweens.add({ targets: this.container, x, y, delay: delayMs, duration: 260, ease: 'Quad.easeIn' });
   }
 
   recoil(angleDegrees: number): void {

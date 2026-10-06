@@ -20,6 +20,12 @@ export const PALETTE = {
   grassShade: '#4f9e6a',
   scorched: '#2a1f22',
   scorchedEdge: '#6b3b2e',
+  freshEarth: '#7a5c3e',
+  freshEarthEdge: '#a8825a',
+  magmaOuter: 0xd9480f,
+  magmaInner: 0xff8a2a,
+  magmaHot: 0xffd166,
+  dust: 0x8a6a48,
 
   hudBg: 0x0c1022,
   hudBorder: 0x2c3566,

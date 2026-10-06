@@ -55,11 +55,11 @@ export class SynthBackend implements SoundBackend {
     this.music?.stop();
   }
 
-  play(id: SoundId, intensity: number): void {
+  play(id: SoundId, intensity: number, delaySeconds: number): void {
     const context = this.context;
     const out = this.effectsGain;
     if (!context || !out || context.state !== 'running' || this.effectsVolume <= 0) return;
-    const t = context.currentTime;
+    const t = context.currentTime + Math.max(0, delaySeconds);
     switch (id) {
       case 'fire':
         this.noiseBurst(t, 0.22, 2400, 300, 0.5);
@@ -98,6 +98,14 @@ export class SynthBackend implements SoundBackend {
         break;
       case 'drill':
         this.tone(t, 'sawtooth', 110, 70, 0.3, 0.12);
+        break;
+      case 'dirt':
+        this.noiseBurst(t, 0.55, 700, 70, 0.75);
+        this.tone(t, 'sine', 70, 35, 0.35, 0.7);
+        break;
+      case 'sizzle':
+        this.noiseBurst(t, 0.6, 7500, 2600, 0.22);
+        this.tone(t, 'sawtooth', 95, 60, 0.4, 0.08);
         break;
       case 'victory':
         [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => this.tone(t + i * 0.14, 'triangle', freq, freq, 0.32, 0.3));

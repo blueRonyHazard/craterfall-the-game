@@ -7,11 +7,45 @@
  * config/weapons.ts.
  */
 
+/** What a detonation does to the ground. */
+export type TerrainEffect =
+  /** Remove earth inside the explosion radius (the default). */
+  | { kind: 'carve' }
+  /**
+   * Drop a pyramid of earth whose apex sits `height` above the impact point.
+   * Its sides slope down at height / halfWidth and run until they meet the ground.
+   */
+  | { kind: 'pyramid'; height: number; halfWidth: number }
+  /** Leave the ground untouched. */
+  | { kind: 'none' };
+
+/** How the explosion is drawn and heard. Purely cosmetic. */
+export type ExplosionVisual = 'fire' | 'dust' | 'magma';
+
+/** A lingering ground hazard left behind by a detonation. */
+export interface MagmaHazardSpec {
+  kind: 'magma';
+  /** Half-width of the pool along the ground. */
+  radius: number;
+  /** Damage to each tank standing in the pool at the end of every turn. */
+  damagePerTurn: number;
+  /** Number of turn-ends the pool survives (including the one it was created in). */
+  turns: number;
+}
+
+export type HazardSpec = MagmaHazardSpec;
+
 export interface Warhead {
-  /** Explosion radius in world units. Also the terrain crater radius. */
+  /** Explosion radius in world units. Also the crater radius when terrain is 'carve'. */
   explosionRadius: number;
   /** Damage dealt at the centre of the explosion. */
   damage: number;
+  /** Ground effect. Defaults to { kind: 'carve' }. */
+  terrain?: TerrainEffect;
+  /** Visual / audio style. Defaults to 'fire'. */
+  visual?: ExplosionVisual;
+  /** Optional lingering hazard created at the impact point. */
+  hazard?: HazardSpec;
 }
 
 export interface ImpactBehaviorConfig {

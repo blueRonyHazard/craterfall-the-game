@@ -12,7 +12,9 @@ export type SoundId =
   | 'turn'
   | 'click'
   | 'drill'
-  | 'victory';
+  | 'victory'
+  | 'dirt'
+  | 'sizzle';
 
 /**
  * Pluggable sound producer. The default SynthBackend generates sounds with the
@@ -23,8 +25,11 @@ export type SoundId =
 export interface SoundBackend {
   /** Called after a user gesture; browsers block audio until then. */
   unlock(): void;
-  /** @param intensity 0..1+ scale hint (e.g. explosion size). */
-  play(id: SoundId, intensity: number): void;
+  /**
+   * @param intensity 0..1+ scale hint (e.g. explosion size).
+   * @param delaySeconds start the sound this long from now.
+   */
+  play(id: SoundId, intensity: number, delaySeconds: number): void;
   setVolumes(effects: number, music: number): void;
   startMusic(): void;
   stopMusic(): void;
@@ -56,8 +61,8 @@ export class AudioManager {
     this.backend.unlock();
   }
 
-  play(id: SoundId, intensity = 1): void {
-    this.backend.play(id, intensity);
+  play(id: SoundId, intensity = 1, delaySeconds = 0): void {
+    this.backend.play(id, intensity, delaySeconds);
   }
 
   startMusic(): void {

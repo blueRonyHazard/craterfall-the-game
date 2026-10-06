@@ -37,7 +37,10 @@ export interface DamageResult {
  * Applies an explosion to every living tank. Distance is measured to the
  * nearest point of the tank's hit circle, so a blast touching the hull counts.
  */
-export function applyExplosionDamage(tanks: readonly TankState[], explosion: Explosion): DamageResult[] {
+export function applyExplosionDamage(
+  tanks: readonly TankState[],
+  explosion: Pick<Explosion, 'x' | 'y' | 'radius' | 'damage'>,
+): DamageResult[] {
   const results: DamageResult[] = [];
   for (const tank of tanks) {
     if (!isTankAlive(tank)) continue;

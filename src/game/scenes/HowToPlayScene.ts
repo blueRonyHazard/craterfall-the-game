@@ -56,7 +56,7 @@ export class HowToPlayScene extends Phaser.Scene {
       ],
       [
         'Destruction',
-        'Every blast carves a crater. Damage falls off with distance from the centre. Dig out the ground under a tank and it drops — long falls hurt. Last tank standing wins.',
+        'Most blasts carve a crater; some weapons add or scoop out earth instead. Damage falls off with distance from the centre. Dig out the ground under a tank and it drops — long falls hurt. Magma pools burn whoever stands in them at the end of each turn. Last tank standing wins.',
       ],
     ];
     this.column(LEFT_X, left);

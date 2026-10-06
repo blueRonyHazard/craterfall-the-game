@@ -7,6 +7,10 @@ const FIRE_PER_RADIUS = 0.9;
 const DEBRIS_PER_RADIUS = 0.7;
 const SMOKE_PER_RADIUS = 0.25;
 const DUST_INTERVAL_MS = 40;
+/** How far above its landing spot the pyramid appears before it falls. */
+const PYRAMID_FALL_DISTANCE = 240;
+const PYRAMID_SHAKE_MS = 180;
+const PYRAMID_SHAKE_INTENSITY = 0.006;
 
 /**
  * Explosions, debris, smoke, muzzle flashes, floating damage numbers and screen
@@ -17,6 +21,8 @@ export class EffectsRenderer {
   private readonly smoke: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly debris: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly sparks: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly dustCloud: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly droplets: Phaser.GameObjects.Particles.ParticleEmitter;
   private lastDust = 0;
 
   constructor(
@@ -64,7 +70,94 @@ export class EffectsRenderer {
       tint: PALETTE.accent,
       blendMode: Phaser.BlendModes.ADD,
     });
-    layer.add([this.smoke, this.debris, this.fire, this.sparks]);
+    this.dustCloud = scene.add.particles(0, 0, TEXTURES.smoke, {
+      emitting: false,
+      lifespan: { min: 900, max: 1900 },
+      speed: { min: 20, max: 140 },
+      angle: { min: 190, max: 350 },
+      scale: { start: 0.7, end: 2.8 },
+      alpha: { start: 0.65, end: 0 },
+      tint: PALETTE.dust,
+      gravityY: -10,
+    });
+    this.droplets = scene.add.particles(0, 0, TEXTURES.spark, {
+      emitting: false,
+      lifespan: { min: 500, max: 1100 },
+      speed: { min: 120, max: 380 },
+      angle: { min: 215, max: 325 },
+      scale: { start: 0.8, end: 0.2 },
+      gravityY: 650,
+      tint: [PALETTE.magmaOuter, PALETTE.magmaInner, PALETTE.magmaHot],
+      blendMode: Phaser.BlendModes.ADD,
+    });
+    layer.add([this.smoke, this.dustCloud, this.debris, this.fire, this.droplets, this.sparks]);
+  }
+
+  /** Earth-moving burst: a cloud of dust and clods, no fire and no shake. */
+  dustBurst(x: number, y: number, radius: number): void {
+    const size = Math.max(20, radius);
+    this.dustCloud.explode(Math.round(size * 0.35), x, y);
+    this.debris.explode(Math.round(size * 0.6), x, y);
+    const ring = this.scene.add.circle(x, y, size).setStrokeStyle(3, PALETTE.dust, 0.7);
+    this.layer.add(ring);
+    this.scene.tweens.add({
+      targets: ring,
+      scale: { from: 0.5, to: 1.2 },
+      alpha: { from: 0.7, to: 0 },
+      duration: 500,
+      ease: 'Cubic.easeOut',
+      onComplete: () => ring.destroy(),
+    });
+  }
+
+  /** Molten splash on impact (on top of a normal small explosion). */
+  magmaSplash(x: number, y: number, radius: number): void {
+    this.explosion(x, y, radius);
+    this.droplets.explode(Math.round(radius * 1.2), x, y);
+  }
+
+  /** A single ember rising from a magma pool. */
+  ember(x: number, y: number): void {
+    this.droplets.explode(1, x, y);
+  }
+
+  /** Flames licking a tank that is standing in magma. */
+  burn(x: number, y: number): void {
+    this.fire.explode(14, x, y);
+    this.droplets.explode(8, x, y);
+    this.smoke.explode(4, x, y);
+  }
+
+  /**
+   * A pyramid of earth falls from the sky and lands with its apex at
+   * (x, apexY). The terrain itself is redrawn by WorldView when it lands.
+   */
+  pyramidDrop(x: number, apexY: number, height: number, halfWidth: number): void {
+    const shape = this.scene.add.graphics();
+    const baseY = apexY + height;
+    shape.fillStyle(PALETTE.dust, 1);
+    shape.fillTriangle(x, apexY, x - halfWidth, baseY, x + halfWidth, baseY);
+    shape.lineStyle(2, 0xa8825a, 1);
+    shape.lineBetween(x - halfWidth, baseY, x, apexY);
+    shape.lineBetween(x, apexY, x + halfWidth, baseY);
+    this.layer.add(shape);
+
+    shape.y = -PYRAMID_FALL_DISTANCE;
+    shape.setAlpha(0);
+    this.scene.tweens.add({
+      targets: shape,
+      y: 0,
+      alpha: 1,
+      duration: EFFECTS.pyramidDropMs,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        shape.destroy();
+        this.dustCloud.explode(22, x - halfWidth * 0.6, baseY);
+        this.dustCloud.explode(22, x + halfWidth * 0.6, baseY);
+        this.debris.explode(30, x, baseY);
+        if (this.shakeEnabled()) this.camera.shake(PYRAMID_SHAKE_MS, PYRAMID_SHAKE_INTENSITY);
+      },
+    });
   }
 
   explosion(x: number, y: number, radius: number): void {

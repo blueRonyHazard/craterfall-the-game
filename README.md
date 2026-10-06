@@ -28,7 +28,7 @@ An original, turn-based 2D artillery game for the browser. Two tanks, one keyboa
 - **Local two-player duels** on the same keyboard (hot-seat), with full mouse support.
 - **Procedural, destructible terrain** — four layouts (rolling hills, valley, central summit, terraces), every explosion carves a crater, and tanks drop (and take fall damage) when the ground under them goes.
 - **Deterministic physics** — our own fixed-timestep ballistic simulation with gravity and seeded wind; the same seeds and actions always replay identically.
-- **Six original weapons**, all data-driven:
+- **Nine original weapons**, all data-driven:
 
   | # | Weapon | Behaviour |
   |---|--------|-----------|
@@ -38,6 +38,9 @@ An original, turn-based 2D artillery game for the browser. Two tanks, one keyboa
   | 4 | Bouncer | Ricochets off the first surface, detonates on the next |
   | 5 | Drill | Bores through up to 90 units of ground before exploding |
   | 6 | Air Strike | A marker flare calls in a staggered line of bombs |
+  | 7 | Magma Pool | Leaves a pool of molten rock that burns any tank in it at the end of every turn |
+  | 8 | Dirt Creator | Drops a pyramid of earth where it lands — build walls or lift a rival into the open |
+  | 9 | Dirt Remover | Scoops out a huge bowl of earth with no blast damage; tanks still fall |
 
 - **Explosions with falloff damage**, particles, shockwaves, debris, and screen shake for big blasts (can be turned off).
 - **Polished HUD** outside the playfield: health bars, wind gauge, turn counter, weapon cards with ammo, angle protractor, segmented power meter and FIRE button.
@@ -133,6 +136,7 @@ src/
 │   │   ├── ProjectileSystem.ts Steps projectiles, applies behaviours
 │   │   ├── ExplosionSystem.ts  Crater + damage + tank settling
 │   │   ├── DamageSystem.ts     Falloff and fall damage
+│   │   ├── HazardSystem.ts     Magma pools that burn at the end of each turn
 │   │   ├── WindSystem.ts       Seeded wind sequence
 │   │   └── GameState.ts        State construction, winner detection, cloning
 │   ├── weapons/
@@ -236,6 +240,16 @@ Append an entry; for example, a long-range sniper round:
 
 Available behaviour kinds: `impact`, `cluster`, `bounce`, `drill`, `airstrike` — each with its own parameters (see `src/types/weapons.ts`). A three-bounce cluster? A heavier, wider air strike? All just data.
 
+Any warhead can also set these optional fields, which is how Magma Pool, Dirt Creator and Dirt Remover are built:
+
+| Field | Values | Effect |
+|-------|--------|--------|
+| `terrain` | `{ kind: 'carve' }` (default) · `{ kind: 'pyramid', height, halfWidth }` · `{ kind: 'none' }` | Dig a crater, drop a pyramid of earth, or leave the ground alone |
+| `visual` | `'fire'` (default) · `'dust'` · `'magma'` | How the detonation looks and sounds (cosmetic only) |
+| `hazard` | `{ kind: 'magma', radius, damagePerTurn, turns }` | Leave a pool that burns tanks standing in it at the end of each turn |
+
+For example, a wider, lower mound is just `terrain: { kind: 'pyramid', height: 60, halfWidth: 140 }`.
+
 ### Option B — a brand-new behaviour
 
 1. **Describe its config** — add an interface to the `BehaviorConfig` union in `src/types/weapons.ts`:
@@ -278,6 +292,7 @@ The Vitest suites under `tests/` exercise only the engine — no rendering, no D
 | `terrain.test.ts` | Solidity, interpolation, crater carving, bedrock, generation, collisions, reflection |
 | `turnManager.test.ts` | Phase transitions, player switching, input locking, action validation |
 | `weapons.test.ts` | Config validation, data-only weapons, ammo, every behaviour |
+| `terrainWeapons.test.ts` | Pyramid building, Dirt Remover falls, magma pools burning, expiring and ending a match |
 | `gameOver.test.ts` | Winner / draw detection, end-of-match flow |
 | `determinism.test.ts` | Full scripted matches replay bit-for-bit from seeds + actions |
 | `settings.test.ts` | localStorage persistence, corrupt data recovery |

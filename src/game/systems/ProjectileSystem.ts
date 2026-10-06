@@ -7,7 +7,7 @@ import { stepBody, type PhysicsParams } from '../physics/ProjectilePhysics';
 import { EXPLODE, type BehaviorContext, type BehaviorOutcome } from '../weapons/Weapon';
 import { behaviorFor } from '../weapons/weapons';
 import type { RemovalCue, TankState } from '../../types/game';
-import { resolveExplosion, type EventSink } from './ExplosionSystem';
+import { resolveExplosion, type EventSink, type ExplosionWorld } from './ExplosionSystem';
 
 /**
  * Owns all projectiles in flight and advances them one fixed step at a time.
@@ -26,14 +26,19 @@ export class ProjectileSystem {
   private readonly physics: PhysicsParams;
   private readonly context: BehaviorContext;
 
+  private readonly terrain: Terrain;
+  private readonly tanks: readonly TankState[];
+  private readonly emit: EventSink;
+
   constructor(
-    private readonly terrain: Terrain,
-    private readonly tanks: readonly TankState[],
-    private readonly emit: EventSink,
+    private readonly world: ExplosionWorld,
     dt: number = PHYSICS.timestep,
   ) {
+    this.terrain = world.terrain;
+    this.tanks = world.tanks;
+    this.emit = world.emit;
     this.physics = { gravity: PHYSICS.gravity, windAcceleration: 0, dt };
-    this.context = { terrain, dt };
+    this.context = { terrain: world.terrain, dt };
   }
 
   get active(): readonly Projectile[] {
@@ -123,9 +128,9 @@ export class ProjectileSystem {
   }
 
   private explode(projectile: Projectile): void {
-    const explosion = createExplosion(projectile.x, projectile.y, projectile.warhead);
+    const explosion = createExplosion(projectile.x, projectile.y, projectile.warhead, projectile.ownerId);
     this.remove(projectile, 'exploded');
-    resolveExplosion(explosion, this.terrain, this.tanks, this.emit);
+    resolveExplosion(explosion, this.world);
   }
 
   private remove(projectile: Projectile, cue: RemovalCue): void {

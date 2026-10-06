@@ -22,8 +22,11 @@ export interface HudCallbacks {
 const MARGIN = 24;
 const BOTTOM_TOP = VIEW.height - HUD_LAYOUT.bottomHeight;
 const DIAL_RADIUS = 52;
-const POWER_WIDTH = 320;
-const FIRE_WIDTH = 220;
+const FIRE_WIDTH = 190;
+/** Horizontal space between the weapon row, angle dial, power bar and FIRE button. */
+const CONTROL_GAP = 32;
+const MIN_POWER_WIDTH = 160;
+const MAX_POWER_WIDTH = 340;
 const FIRE_HEIGHT = 74;
 
 /**
@@ -70,10 +73,13 @@ export class HUD {
     this.weaponsRow = new WeaponSelector(scene, MARGIN, BOTTOM_TOP + 74, weapons, CONTROLS.weaponSlots, (id) =>
       callbacks.selectWeapon(id),
     );
-    const dialX = MARGIN + this.weaponsRow.totalWidth + 40 + DIAL_RADIUS;
+    const dialX = MARGIN + this.weaponsRow.totalWidth + CONTROL_GAP + DIAL_RADIUS;
     this.angle = new AngleIndicator(scene, dialX, VIEW.height - 26, DIAL_RADIUS, (a) => callbacks.setAngle(a));
-    const powerX = dialX + DIAL_RADIUS + 44;
-    this.power = new PowerMeter(scene, powerX, BOTTOM_TOP + 70, POWER_WIDTH, (p) => callbacks.setPower(p));
+    const powerX = dialX + DIAL_RADIUS + CONTROL_GAP;
+    // The power bar takes whatever room is left before the FIRE button.
+    const fireLeft = VIEW.width - MARGIN - FIRE_WIDTH;
+    const powerWidth = Math.min(MAX_POWER_WIDTH, Math.max(MIN_POWER_WIDTH, fireLeft - CONTROL_GAP - powerX));
+    this.power = new PowerMeter(scene, powerX, BOTTOM_TOP + 70, powerWidth, (p) => callbacks.setPower(p));
     this.fireButton = new Button(scene, VIEW.width - MARGIN - FIRE_WIDTH / 2, BOTTOM_TOP + HUD_LAYOUT.bottomHeight / 2, {
       width: FIRE_WIDTH,
       height: FIRE_HEIGHT,

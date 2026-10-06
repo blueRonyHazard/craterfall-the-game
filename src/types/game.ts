@@ -1,3 +1,5 @@
+import type { ExplosionVisual } from './weapons';
+
 /**
  * Core gameplay types shared by the deterministic engine, the renderer and the UI.
  *
@@ -54,6 +56,19 @@ export interface PlayerState {
 
 export type Winner = PlayerId | 'draw';
 
+/** A magma pool lying on the ground. Part of the game state, so it replays and serialises. */
+export interface HazardState {
+  id: number;
+  kind: 'magma';
+  ownerId: PlayerId;
+  /** Centre of the pool; it always lies along the current terrain surface. */
+  x: number;
+  radius: number;
+  damagePerTurn: number;
+  /** Turn-ends remaining before the pool cools. */
+  turnsLeft: number;
+}
+
 /** Full, serialisable description of a match in progress. */
 export interface GameStateData {
   players: [PlayerState, PlayerState];
@@ -65,6 +80,8 @@ export interface GameStateData {
   wind: Wind;
   phase: GamePhase;
   winner: Winner | null;
+  /** Lingering ground hazards (magma pools). */
+  hazards: HazardState[];
 }
 
 /**
@@ -97,8 +114,12 @@ export type SimEvent =
   | { type: 'projectileSpawned'; projectileId: number; x: number; y: number }
   | { type: 'projectileRemoved'; projectileId: number; x: number; y: number; cue: RemovalCue }
   | { type: 'projectileBounced'; projectileId: number; x: number; y: number }
-  | { type: 'explosion'; x: number; y: number; radius: number; damage: number }
-  | { type: 'terrainChanged'; minX: number; maxX: number }
+  | { type: 'explosion'; x: number; y: number; radius: number; damage: number; visual: ExplosionVisual }
+  | { type: 'terrainChanged'; minX: number; maxX: number; cause: 'carve' | 'build' }
+  | { type: 'terrainBuilt'; x: number; apexY: number; height: number; halfWidth: number }
+  | { type: 'hazardCreated'; hazardId: number; x: number; radius: number }
+  | { type: 'hazardTriggered'; hazardId: number; playerId: PlayerId; x: number; y: number }
+  | { type: 'hazardExpired'; hazardId: number }
   | { type: 'tankDamaged'; playerId: PlayerId; amount: number; health: number }
   | { type: 'tankMoved'; playerId: PlayerId; x: number; y: number }
   | { type: 'tankDestroyed'; playerId: PlayerId }

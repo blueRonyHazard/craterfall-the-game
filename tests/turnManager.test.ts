@@ -6,7 +6,7 @@ import { MatchEngine } from '../src/game/systems/MatchEngine';
 import { WEAPONS } from '../src/game/config/weapons';
 import { GamePhase, type PlayerAction } from '../src/types/game';
 
-function freshState() {
+function freshState(windChangesEachTurn?: boolean) {
   const wind = new WindSystem(1);
   const state = createGameState({
     terrainSeed: 1,
@@ -19,7 +19,7 @@ function freshState() {
     weapons: WEAPONS,
     defaultWeaponId: 'standard-shell',
   });
-  return { state, turns: new TurnManager(state, wind) };
+  return { state, turns: new TurnManager(state, wind, windChangesEachTurn) };
 }
 
 function playOneTurn(turns: TurnManager): void {
@@ -61,9 +61,17 @@ describe('TurnManager', () => {
     expect(() => turns.beginResolution()).toThrow();
     expect(() => turns.startNextTurn()).toThrow();
   });
-
-  it('rolls new wind each turn from the seeded sequence', () => {
+  
+  it('keeps the same wind for the whole match by default', () => {
     const { state, turns } = freshState();
+    const initial = { ...state.wind };
+    for (let i = 0; i < 6; i++) playOneTurn(turns);
+    expect(state.turnNumber).toBe(7);
+    expect(state.wind).toEqual(initial);
+  });
+
+  it('rolls new wind each turn from the seeded sequence when enabled', () => {
+    const { state, turns } = freshState(true);
     const reference = new WindSystem(1);
     reference.next(); // turn 1
     playOneTurn(turns);

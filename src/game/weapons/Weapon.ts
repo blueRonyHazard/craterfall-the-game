@@ -3,7 +3,7 @@ import type { Projectile, ProjectileSpawn } from '../entities/Projectile';
 import { barrelTip } from '../entities/Tank';
 import { launchVelocity } from '../physics/ProjectilePhysics';
 import type { RemovalCue, TankState } from '../../types/game';
-import type { BehaviorConfig, WeaponDefinition } from '../../types/weapons';
+import type { BehaviorConfig, Warhead, WeaponDefinition } from '../../types/weapons';
 
 export interface BehaviorContext {
   terrain: Terrain;
@@ -59,6 +59,18 @@ export interface Weapon {
   fire(request: FireRequest): ProjectileSpawn[];
 }
 
+/** Extracts the warhead part of a weapon definition (only the fields that are set). */
+export function warheadOf(definition: WeaponDefinition): Warhead {
+  const { explosionRadius, damage, terrain, visual, hazard } = definition;
+  return {
+    explosionRadius,
+    damage,
+    ...(terrain ? { terrain } : {}),
+    ...(visual ? { visual } : {}),
+    ...(hazard ? { hazard } : {}),
+  };
+}
+
 /** The default Weapon implementation: one projectile from the barrel tip. */
 export class DataWeapon implements Weapon {
   readonly definition: WeaponDefinition;
@@ -100,7 +112,7 @@ export class DataWeapon implements Weapon {
         y: origin.y,
         vx: velocity.vx,
         vy: velocity.vy,
-        warhead: { explosionRadius: this.definition.explosionRadius, damage: this.definition.damage },
+        warhead: warheadOf(this.definition),
         behavior: this.definition.behavior,
         radius: this.definition.projectileRadius,
         color: this.definition.color,

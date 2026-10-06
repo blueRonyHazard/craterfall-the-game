@@ -63,6 +63,22 @@ export class WeaponManager {
   }
 }
 
+function validateWarheadExtras(label: string, def: WeaponDefinition): string[] {
+  const errors: string[] = [];
+  if (def.terrain?.kind === 'pyramid') {
+    if (!(def.terrain.height > 0)) errors.push(`${label}: pyramid height must be > 0.`);
+    if (!(def.terrain.halfWidth > 0)) errors.push(`${label}: pyramid halfWidth must be > 0.`);
+  }
+  if (def.hazard) {
+    if (!(def.hazard.radius > 0)) errors.push(`${label}: hazard radius must be > 0.`);
+    if (!(def.hazard.damagePerTurn >= 0)) errors.push(`${label}: hazard damagePerTurn must be >= 0.`);
+    if (!(Number.isInteger(def.hazard.turns) && def.hazard.turns > 0)) {
+      errors.push(`${label}: hazard turns must be a whole number > 0.`);
+    }
+  }
+  return errors;
+}
+
 /** Returns a list of human-readable problems with the weapon definitions (empty when valid). */
 export function validateWeaponDefinitions(definitions: readonly WeaponDefinition[]): string[] {
   const errors: string[] = [];
@@ -81,6 +97,7 @@ export function validateWeaponDefinitions(definitions: readonly WeaponDefinition
     if (!(def.damage >= 0)) errors.push(`${label}: damage must be >= 0.`);
     if (!(def.ammo > 0)) errors.push(`${label}: ammo must be > 0 (use Infinity for unlimited).`);
     if (!(def.projectileRadius > 0)) errors.push(`${label}: projectileRadius must be > 0.`);
+    errors.push(...validateWarheadExtras(label, def));
     if (!isRegisteredBehavior(def.behavior.kind)) {
       errors.push(`${label}: unknown behavior "${def.behavior.kind}".`);
     }

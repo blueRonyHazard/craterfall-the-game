@@ -12,7 +12,19 @@ export function playEventSound(audio: AudioManager, event: SimEvent): void {
       audio.play('fire');
       return;
     case 'explosion':
+      if (event.visual === 'dust') {
+        if (event.radius > 0) audio.play('dirt');
+        return;
+      }
       if (event.radius > 0) audio.play('explosion', event.radius / EFFECTS.shakeRadiusThreshold);
+      if (event.visual === 'magma') audio.play('sizzle');
+      return;
+    case 'terrainBuilt':
+      // Thud when the falling pyramid lands.
+      audio.play('dirt', 1, EFFECTS.pyramidDropMs / 1000);
+      return;
+    case 'hazardTriggered':
+      audio.play('sizzle');
       return;
     case 'projectileBounced':
       audio.play('bounce');
@@ -36,6 +48,8 @@ export function playEventSound(audio: AudioManager, event: SimEvent): void {
     case 'projectileSpawned':
     case 'terrainChanged':
     case 'tankMoved':
+    case 'hazardCreated':
+    case 'hazardExpired':
       return;
   }
 }

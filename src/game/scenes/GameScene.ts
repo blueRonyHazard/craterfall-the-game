@@ -67,7 +67,7 @@ export class GameScene extends Phaser.Scene {
     uiCamera.ignore(worldLayer);
 
     const { settings } = this.services;
-    this.world = new WorldView(this, worldLayer, worldCamera, this.engine, {
+    this.world = new WorldView(worldLayer, worldCamera, this, this.engine, {
       screenShake: () => settings.getSettings().screenShake,
       showAimGuide: () => settings.getPreferences().showAimGuide,
     });

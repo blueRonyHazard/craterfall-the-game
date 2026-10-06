@@ -4,9 +4,9 @@ import { PALETTE } from '../game/config/theme';
 import type { WeaponDefinition } from '../types/weapons';
 import { textStyle } from './text';
 
-export const CARD_WIDTH = 112;
+export const CARD_WIDTH = 96;
 export const CARD_HEIGHT = 68;
-export const CARD_GAP = 8;
+export const CARD_GAP = 6;
 const RADIUS = 8;
 
 interface Card {
@@ -34,12 +34,12 @@ export class WeaponSelector extends Phaser.GameObjects.Container {
       const background = scene.add.graphics();
       const key = slotKeys[index];
       const keyText = scene.add
-        .text(-CARD_WIDTH / 2 + 8, -CARD_HEIGHT / 2 + 6, key ? keyLabel(key) : '', textStyle(12, PALETTE.textDim, 'bold'))
+        .text(-CARD_WIDTH / 2 + 7, -CARD_HEIGHT / 2 + 6, key ? keyLabel(key) : '', textStyle(12, PALETTE.textDim, 'bold'))
         .setOrigin(0, 0);
       const icon = scene.add.circle(0, -10, 7, weapon.color).setStrokeStyle(2, 0x000000, 0.4);
-      const name = scene.add.text(0, 10, weapon.name, textStyle(13, PALETTE.textPrimary, 'bold')).setOrigin(0.5);
+      const name = scene.add.text(0, 10, weapon.name, textStyle(12, PALETTE.textPrimary, 'bold')).setOrigin(0.5);
       const ammoText = scene.add
-        .text(CARD_WIDTH / 2 - 8, -CARD_HEIGHT / 2 + 6, '', textStyle(12, PALETTE.textMuted, 'bold'))
+        .text(CARD_WIDTH / 2 - 7, -CARD_HEIGHT / 2 + 6, '', textStyle(12, PALETTE.textMuted, 'bold'))
         .setOrigin(1, 0);
       const zone = scene.add.zone(0, 0, CARD_WIDTH, CARD_HEIGHT).setInteractive({ useHandCursor: true });
       zone.on('pointerdown', () => onSelect(weapon.id));

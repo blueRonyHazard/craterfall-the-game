@@ -17,6 +17,7 @@ import {
 } from '../../types/game';
 import type { WeaponDefinition } from '../../types/weapons';
 import { createGameState } from './GameState';
+import { HazardSystem } from './HazardSystem';
 import { ProjectileSystem } from './ProjectileSystem';
 import { TurnManager } from './TurnManager';
 import { WindSystem, windAcceleration } from './WindSystem';
@@ -52,6 +53,7 @@ export class MatchEngine {
 
   private readonly turns: TurnManager;
   private readonly projectiles: ProjectileSystem;
+  private readonly hazards: HazardSystem;
   private readonly actionLog: PlayerAction[] = [];
   private events: SimEvent[] = [];
   private phaseTimer = 0;
@@ -87,7 +89,14 @@ export class MatchEngine {
     });
 
     this.turns = new TurnManager(this.state, windSystem);
-    this.projectiles = new ProjectileSystem(this.terrain, this.state.tanks, (event) => this.events.push(event), this.dt);
+    const emit = (event: SimEvent): void => {
+      this.events.push(event);
+    };
+    this.hazards = new HazardSystem(this.state.hazards, emit);
+    this.projectiles = new ProjectileSystem(
+      { terrain: this.terrain, tanks: this.state.tanks, hazards: this.hazards, emit },
+      this.dt,
+    );
     this.announceTurn();
   }
 
@@ -182,6 +191,8 @@ export class MatchEngine {
         return;
       case GamePhase.Explosion:
         if (this.countdown()) {
+          // Magma pools burn at the end of every turn, before checking for a winner.
+          this.hazards.endOfTurn(this.state.tanks);
           const winner = this.turns.finishResolution();
           if (winner !== null) {
             this.events.push({ type: 'gameOver', winner });

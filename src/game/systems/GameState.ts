@@ -30,6 +30,7 @@ export function createGameState(options: InitialStateOptions): GameStateData {
     wind: options.wind,
     phase: GamePhase.Aiming,
     winner: null,
+    hazards: [],
   };
 }
 
